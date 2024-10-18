@@ -1,0 +1,3 @@
+linux-image-current-sunxi:armhf | 24.11.0-trunk.287 | http://beta.armbian.com bookworm/main armhf Packages
+linux-headers-current-sunxi:armhf | 24.11.0-trunk.287 | http://beta.armbian.com bookworm/main armhf Packages
+linux-dtb-current-sunxi:armhf | 24.11.0-trunk.287 | http://beta.armbian.com bookworm/main armhf Packages

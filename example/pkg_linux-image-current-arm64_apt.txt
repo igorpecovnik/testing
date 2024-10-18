@@ -1,0 +1,3 @@
+linux-image-current-arm64:arm64 |     24.8.2 | http://apt.armbian.com bookworm/main arm64 Packages
+linux-headers-current-arm64:arm64 |     24.8.2 | http://apt.armbian.com bookworm/main arm64 Packages
+linux-dtb-current-arm64:arm64 |     24.8.2 | http://apt.armbian.com bookworm/main arm64 Packages

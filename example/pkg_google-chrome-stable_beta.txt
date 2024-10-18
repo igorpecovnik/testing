@@ -1,0 +1,1 @@
+google-chrome-stable | 130.0.6723.58-1 | http://beta.armbian.com bookworm/bookworm-desktop amd64 Packages

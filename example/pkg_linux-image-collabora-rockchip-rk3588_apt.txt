@@ -1,0 +1,3 @@
+linux-image-collabora-rockchip-rk3588:arm64 |     24.5.1 | http://apt.armbian.com bookworm/main arm64 Packages
+linux-headers-collabora-rockchip-rk3588:arm64 |     24.5.1 | http://apt.armbian.com bookworm/main arm64 Packages
+linux-dtb-collabora-rockchip-rk3588:arm64 |     24.5.1 | http://apt.armbian.com bookworm/main arm64 Packages

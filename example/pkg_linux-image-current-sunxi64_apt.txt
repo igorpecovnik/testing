@@ -1,0 +1,3 @@
+linux-image-current-sunxi64:arm64 |     24.5.4 | http://apt.armbian.com bookworm/main arm64 Packages
+linux-headers-current-sunxi64:arm64 |     24.5.4 | http://apt.armbian.com bookworm/main arm64 Packages
+linux-dtb-current-sunxi64:arm64 |     24.5.4 | http://apt.armbian.com bookworm/main arm64 Packages

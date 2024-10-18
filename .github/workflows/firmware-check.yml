@@ -1,0 +1,212 @@
+name: Check and display armbian packages
+on:
+  workflow_dispatch:
+  push:
+
+    
+concurrency:
+  group: repocheck
+  cancel-in-progress: true
+
+jobs:
+
+  test:
+    name: "Test"
+    runs-on: ubuntu-latest
+    outputs:
+      max-parallel: 18
+      matrix:  ${{steps.json.outputs.JSON_CONTENT}}
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: armbian/os
+          path: os
+          fetch-depth: '2'
+          clean: false
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v43
+        with:
+          path: os
+          files: |
+            external/*.conf
+
+      - name: "Make JSON"
+        id: json
+        run: |
+
+          # packages to test
+          packages=(
+            linux-image-collabora-rockchip-rk3588
+            linux-image-current-arm64
+            linux-image-current-bcm2711
+            linux-image-current-bcm2712
+            linux-image-current-imx6
+            linux-image-current-imx8m
+            linux-image-current-k3
+            linux-image-current-media
+            linux-image-current-meson
+            linux-image-current-meson64
+            linux-image-current-mt7623
+            linux-image-current-mvebu
+            linux-image-current-mvebu64
+            linux-image-current-odroidxu4
+            linux-image-current-phytium-embedded
+            linux-image-current-riscv64
+            linux-image-current-rockchip
+            linux-image-current-rockchip-rk3588
+            linux-image-current-rockchip64
+            linux-image-current-sm8250
+            linux-image-current-spacemit
+            linux-image-current-sunxi
+            linux-image-current-sunxi64
+            linux-image-current-thead
+            linux-image-current-wsl2-arm64
+            linux-image-current-wsl2-x86
+            linux-image-current-x86
+            linux-image-edge-arm64
+            linux-image-edge-bcm2711
+            linux-image-edge-bcm2712
+            linux-image-edge-imx6
+            linux-image-edge-k3
+            linux-image-edge-media
+            linux-image-edge-meson
+            linux-image-edge-meson64
+            linux-image-edge-mvebu
+            linux-image-edge-mvebu64
+            linux-image-edge-odroidxu4
+            linux-image-edge-riscv64
+            linux-image-edge-rockchip
+            linux-image-edge-rockchip-rk3588
+            linux-image-edge-rockchip64
+            linux-image-edge-sm8250
+            linux-image-edge-starfive
+            linux-image-edge-starfive2
+            linux-image-edge-sunxi
+            linux-image-edge-sunxi64
+            linux-image-edge-thead
+            linux-image-edge-wsl2-arm64
+            linux-image-edge-wsl2-x86
+            linux-image-edge-x86
+            linux-image-legacy-arm64
+            linux-image-legacy-bcm2711
+            linux-image-legacy-media
+            linux-image-legacy-meson-s4t7
+            linux-image-legacy-mt7623
+            linux-image-legacy-phytium-embedded
+            linux-image-legacy-riscv64
+            linux-image-legacy-rk35xx
+            linux-image-legacy-rockpis
+            linux-image-legacy-spacemit
+            linux-image-legacy-sun50iw9
+            linux-image-legacy-sun50iw9-btt
+            linux-image-legacy-sun55iw3-syterkit
+            linux-image-legacy-sunxi
+            linux-image-legacy-sunxi64
+            linux-image-legacy-thead
+            linux-image-legacy-x86
+            linux-image-sc8280xp-arm64
+            linux-image-sm8250-arm64
+            linux-image-sm8550-arm64
+            linux-image-vendor-rk35xx
+            linux-image-wdk2023-arm64
+          )
+
+          repository=("apt" "beta")
+          echo 'JSON_CONTENT<<EOF' >> $GITHUB_OUTPUT
+          for i in "${packages[@]}" $(grep INSTALL os/external/*.conf | cut -d"=" -f2 | sort | uniq | sed "s/\"//g" | sed "s/ /\n/g"); do
+                      for j in ${repository[@]}; do
+                      echo "{\"package\":\"${i}\",\"repository\":\"$j\"}"
+                      done
+          done | jq -s >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+  gradle:
+    needs: test
+    strategy:
+      fail-fast: false
+      max-parallel: 18
+      matrix:
+        image: ${{ fromJSON(needs.test.outputs.matrix) }}
+
+    name: "I"
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    container:
+        image: "ubuntu:jammy"
+    steps:
+
+      - name: "Search packages ${{ matrix.image.repository }} ${{ matrix.image.package }}"
+        run: |
+
+          apt update
+          apt -y install wget gpg
+          export DEBIAN_FRONTEND=noninteractive
+          # drop upstream repository
+          rm -f /etc/apt/sources.list
+          ls -l /etc/apt/
+          
+          apt update
+          RELEASE="jammy"
+          
+          dpkg --add-architecture i386
+          dpkg --add-architecture arm64
+          dpkg --add-architecture armhf
+          dpkg --add-architecture riscv64
+
+          # add armbian repository
+          wget https://${{ matrix.image.repository }}.armbian.com/armbian.key -O key
+          gpg --dearmor < key | tee /usr/share/keyrings/armbian.gpg > /dev/null
+          chmod go+r /usr/share/keyrings/armbian.gpg
+          echo "deb [arch=amd64,arm64,armhf,riscv64 signed-by=/usr/share/keyrings/armbian.gpg] http://${{ matrix.image.repository }}.armbian.com $RELEASE main ${RELEASE}-utils ${RELEASE}-desktop" | tee /etc/apt/sources.list.d/armbian.list
+          echo "deb [arch=amd64,arm64,armhf,riscv64 signed-by=/usr/share/keyrings/armbian.gpg] http://${{ matrix.image.repository }}.armbian.com bookworm main bookworm-utils bookworm-desktop" | tee /etc/apt/sources.list.d/armbian.list
+          apt update
+          #echo "apt-cache madison ${{ matrix.image.package }}"
+          apt-cache madison "${{ matrix.image.package }}" | head -1 > pkg_"${{ matrix.image.package }}"_${{ matrix.image.repository }}.txt
+          # search for headers and dtb
+          if grep linux-image pkg_"${{ matrix.image.package }}"_${{ matrix.image.repository }}.txt; then
+              apt-cache madison echo "${{ matrix.image.package }}" | sed "s/linux-image/linux-headers/g" | head -1 >> pkg_"${{ matrix.image.package }}"_${{ matrix.image.repository }}.txt
+              apt-cache madison echo "${{ matrix.image.package }}" | sed "s/linux-image/linux-dtb/g" | head -1 >> pkg_"${{ matrix.image.package }}"_${{ matrix.image.repository }}.txt
+          fi
+
+      - name: Upload parts
+        uses: actions/upload-artifact@v3.2.1-node20
+        with:
+          name: PART
+          path: pkg*.txt
+
+  merge:
+    name: "Merge artifacts"
+    if: always()
+    needs: gradle
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Download changes"
+        uses: actions/download-artifact@v3
+        with:
+          name: PART
+
+      - name: "Merge parts"
+        run: |
+
+          echo "|Package|Version|Headers|DTB|" >> $GITHUB_STEP_SUMMARY
+          echo "|:---|---:|---:|---:|" >> $GITHUB_STEP_SUMMARY
+          for i in $(ls -1 *.txt | grep apt); do
+          pkg_stable=$(echo $i | cut -d"_" -f2,2)
+          pkg_headers_version="n/a"
+          pkg_dtb_version="n/a"
+          if grep linux-image $i >/dev/null; then
+              pkg_version=$(cat $i | grep -v linux-headers | grep -v linux-dtb | cut -d"|" -f2 | xargs)
+              pkg_headers_version=$(cat $i | grep linux-headers | cut -d"|" -f2 | xargs)
+              pkg_dtb_version=$(cat $i | grep linux-dtb | cut -d"|" -f2 | xargs)
+              if [[ $pkg_headers_version != $pkg_version ]]; then
+                  pkg_headers_version="error"
+              fi
+          else
+              pkg_version=$(cat $i | grep -v linux-headers | cut -d"|" -f2 | xargs)
+          fi
+          echo "| $pkg_stable | $pkg_version | $pkg_headers_version | $pkg_dtb_version |" >> $GITHUB_STEP_SUMMARY
+          done
