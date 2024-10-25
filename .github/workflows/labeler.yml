@@ -10,6 +10,18 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
+  label-remove:
+    permissions:
+      contents: read # for pascalgn/size-label-action to determine modified files
+      pull-requests: write # for pascalgn/size-label-action to add labels to PRs
+    name: "Remove Ready to merge"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove all specified labels if present      
+        uses: peter-murray/remove-labels-action@v1
+        with:
+         labels: "Ready to merge"
+           
   label-category:
     permissions:
       contents: read # for actions/labeler to determine modified files
