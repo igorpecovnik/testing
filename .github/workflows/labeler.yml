@@ -17,10 +17,10 @@ jobs:
     name: "Remove Ready to merge"
     runs-on: ubuntu-latest
     steps:
-      - name: Remove all specified labels if present      
-        uses: peter-murray/remove-labels-action@v1
+      - uses: PauMAVA/add-remove-label-action@v1.0.3
         with:
-         labels: "Ready to merge"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          remove: "Ready to merge"
            
   label-category:
     permissions:
