@@ -5,9 +5,7 @@ run-name: 'Set labels - PR #${{ github.event.pull_request.number }} ("${{ github
 # Set labels for pull requests automatically based on size (modified via job 'label-size') and file categories (modified via .github/labeler)
 #
 
-on:
-  pull_request:
-    types: [opened, reopened, synchronize]
+on: pull_request_target
 
 jobs:
   label-remove:
