@@ -14,7 +14,7 @@ jobs:
       contents: read # for pascalgn/size-label-action to determine modified files
       pull-requests: write # for pascalgn/size-label-action to add labels to PRs
     name: "Remove Ready to merge"
-    if: ${{ github.event.action == 'opened' }}
+    if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
     runs-on: ubuntu-latest
     steps:
       - uses: PauMAVA/add-remove-label-action@v1.0.3
